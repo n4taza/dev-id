@@ -1,3 +1,6 @@
+import formidable from "formidable";
+import { Catbox } from "node-catbox"; // 🔥 pakai ini (lebih baru)
+
 export const config = {
   api: {
     bodyParser: false,
@@ -6,51 +9,33 @@ export const config = {
 
 export default async function handler(req, res) {
   try {
-    const chunks = [];
+    const form = formidable({ keepExtensions: true });
 
-    for await (const chunk of req) {
-      chunks.push(chunk);
-    }
+    form.parse(req, async (err, fields, files) => {
+      if (err) {
+        return res.status(500).json({ error: "Parse error" });
+      }
 
-    const fileBuffer = Buffer.concat(chunks);
+      const file = files.file;
 
-    const boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
+      if (!file) {
+        return res.status(400).json({ error: "File tidak ditemukan" });
+      }
 
-    const body = Buffer.concat([
-      Buffer.from(
-        `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="reqtype"\r\n\r\n` +
-        `fileupload\r\n`
-      ),
+      const filepath = Array.isArray(file)
+        ? file[0].filepath
+        : file.filepath;
 
-      Buffer.from(
-        `--${boundary}\r\n` +
-        `Content-Disposition: form-data; name="fileToUpload"; filename="file.jpg"\r\n` +
-        `Content-Type: application/octet-stream\r\n\r\n`
-      ),
+      const catbox = new Catbox();
 
-      fileBuffer,
+      // 🔥 ini sesuai dokumentasi
+      const url = await catbox.uploadFile({
+        path: filepath,
+      });
 
-      Buffer.from(`\r\n--${boundary}--`)
-    ]);
+      res.status(200).json({ url });
 
-    const response = await fetch("https://catbox.moe/user/api.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": `multipart/form-data; boundary=${boundary}`,
-      },
-      body: body,
     });
-
-    const text = await response.text();
-
-    console.log("CATBOX:", text);
-
-    if (!text.startsWith("http")) {
-      return res.status(500).json({ error: text });
-    }
-
-    res.status(200).json({ url: text });
 
   } catch (err) {
     console.error(err);
