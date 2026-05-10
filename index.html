@@ -7,102 +7,71 @@
 
 <style>
 body {
-    margin:0;
-    font-family: 'Segoe UI', sans-serif;
-    background: #0f172a;
-    color: white;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
-
-.container {
-    background:#1e293b;
-    padding:30px;
-    border-radius:15px;
-    text-align:center;
-    width:320px;
-    box-shadow:0 0 20px rgba(0,0,0,0.5);
+.box {
+  background:#1e293b;
+  padding:25px;
+  border-radius:10px;
+  text-align:center;
 }
-
-h1 {
-    margin-bottom:20px;
-}
-
-input {
-    margin:10px 0;
-}
-
 button {
-    background:#6366f1;
-    border:none;
-    padding:10px 20px;
-    color:white;
-    border-radius:8px;
-    cursor:pointer;
-}
-
-button:hover {
-    background:#4f46e5;
-}
-
-.result {
-    margin-top:15px;
-    word-break:break-all;
+  margin-top:10px;
+  padding:10px;
+  background:#6366f1;
+  color:white;
+  border:none;
+  border-radius:6px;
 }
 </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Upload File</h1>
-
-    <input type="file" id="fileInput"><br>
-    <button onclick="upload()">Upload</button>
-
-    <div class="result" id="result"></div>
+<div class="box">
+  <h2>Upload File</h2>
+  <input type="file" id="file"><br>
+  <button onclick="upload()">Upload</button>
+  <p id="result"></p>
 </div>
 
 <script>
 async function upload() {
-    const file = document.getElementById("fileInput").files[0];
-    const result = document.getElementById("result");
+  const file = document.getElementById("file").files[0];
+  const result = document.getElementById("result");
 
-    if (!file) {
-        result.innerText = "Pilih file dulu!";
-        return;
+  if (!file) {
+    result.innerText = "Pilih file dulu!";
+    return;
+  }
+
+  result.innerText = "Uploading...";
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (data.url) {
+      result.innerHTML = `<a href="${data.url}" target="_blank">${data.url}</a>`;
+    } else {
+      result.innerText = "Error: " + JSON.stringify(data);
     }
 
-    result.innerText = "Uploading...";
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-        const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData
-        });
-
-        const text = await res.text(); // ⬅️ ambil raw dulu
-        console.log("RESPONSE:", text);
-
-        try {
-            const data = JSON.parse(text);
-
-            if (data.url) {
-                result.innerHTML = `<a href="${data.url}" target="_blank">${data.url}</a>`;
-            } else {
-                result.innerText = "Error: " + text;
-            }
-        } catch {
-            result.innerText = "Raw error: " + text;
-        }
-
-    } catch (err) {
-        result.innerText = "Fetch gagal: " + err.message;
-    }
+  } catch (err) {
+    result.innerText = "Fetch error: " + err.message;
+  }
 }
 </script>
 
