@@ -1,39 +1,33 @@
 export const config = {
   api: {
-    bodyParser: false
-  }
+    bodyParser: false,
+  },
 };
-
-import formidable from "formidable";
-import fs from "fs";
-import FormData from "form-data";
-import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   try {
-    const form = new formidable.IncomingForm();
+    const chunks = [];
 
-    form.parse(req, async (err, fields, files) => {
-      if (err) return res.status(500).json({ error: "Parse error" });
+    for await (const chunk of req) {
+      chunks.push(chunk);
+    }
 
-      const file = files.file;
+    const buffer = Buffer.concat(chunks);
 
-      const formData = new FormData();
-      formData.append("reqtype", "fileupload");
-      formData.append("fileToUpload", fs.createReadStream(file.filepath));
-
-      const response = await fetch("https://catbox.moe/user/api.php", {
-        method: "POST",
-        body: formData
-      });
-
-      const text = await response.text();
-
-      res.status(200).json({ url: text });
+    const response = await fetch("https://catbox.moe/user/api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+      },
+      body: buffer,
     });
 
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Upload failed" });
+    const text = await response.text();
+
+    return res.status(200).json({ result: text });
+
+  } catch (err) {
+    console.error("ERROR:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
