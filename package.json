@@ -1,14 +1,7 @@
 {
-  "name": "catbox-uploader",
-  "version": "1.0.0",
-  "description": "Upload file ke Catbox via Vercel",
   "type": "module",
-  "main": "index.js",
-  "engines": {
-    "node": ">=18"
-  },
   "dependencies": {
-    "form-data": "^4.0.0",
-    "formidable": "^3.5.0"
+    "formidable": "^3.5.0",
+    "node-catbox": "^3.4.0"
   }
 }
