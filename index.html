@@ -85,17 +85,23 @@ async function upload() {
             body: formData
         });
 
-        const data = await res.json();
+        const text = await res.text(); // ⬅️ ambil raw dulu
+        console.log("RESPONSE:", text);
 
-        if (data.url && data.url.startsWith("http")) {
-            result.innerHTML = `<a href="${data.url}" target="_blank">${data.url}</a>`;
-        } else {
-            result.innerText = "Error upload!";
+        try {
+            const data = JSON.parse(text);
+
+            if (data.url) {
+                result.innerHTML = `<a href="${data.url}" target="_blank">${data.url}</a>`;
+            } else {
+                result.innerText = "Error: " + text;
+            }
+        } catch {
+            result.innerText = "Raw error: " + text;
         }
 
     } catch (err) {
-        result.innerText = "Upload gagal!";
-        console.error(err);
+        result.innerText = "Fetch gagal: " + err.message;
     }
 }
 </script>
