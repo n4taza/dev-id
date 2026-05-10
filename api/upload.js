@@ -16,26 +16,27 @@ export default async function handler(req, res) {
 
     const buffer = Buffer.concat(chunks);
 
-    if (!buffer || buffer.length === 0) {
-      return res.status(400).json({ error: "File kosong / tidak terbaca" });
-    }
-
     const form = new FormData();
+
+    // ⚠️ append urutan penting (reqtype dulu)
     form.append("reqtype", "fileupload");
+
     form.append("fileToUpload", buffer, {
-      filename: "upload.jpg",
-      contentType: "image/jpeg",
+      filename: "file.jpg",
+      contentType: "application/octet-stream",
     });
 
     const response = await fetch("https://catbox.moe/user/api.php", {
       method: "POST",
+      headers: {
+        ...form.getHeaders(), // ⬅️ WAJIB
+      },
       body: form,
-      headers: form.getHeaders(),
     });
 
     const text = await response.text();
 
-    console.log("CATBOX RESPONSE:", text);
+    console.log("CATBOX:", text);
 
     if (!text.startsWith("http")) {
       return res.status(500).json({ error: text });
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
     res.status(200).json({ url: text });
 
   } catch (err) {
-    console.error("SERVER ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 }
