@@ -10,14 +10,12 @@ export const config = {
 
 export default async function handler(req, res) {
   try {
-    const form = new formidable.IncomingForm({
-      keepExtensions: true,
-    });
+    const form = formidable({ keepExtensions: true });
 
     form.parse(req, async (err, fields, files) => {
       if (err) {
-        console.error("FORM ERROR:", err);
-        return res.status(500).json({ error: "Form parse error" });
+        console.error(err);
+        return res.status(500).json({ error: "Parse error" });
       }
 
       const file = files.file;
@@ -26,13 +24,16 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "File tidak ditemukan" });
       }
 
-      // 🔥 ambil path file temp dari Vercel
-      const fileStream = fs.createReadStream(file.filepath);
+      // ⚠️ beda versi formidable, kadang array
+      const filepath = Array.isArray(file)
+        ? file[0].filepath
+        : file.filepath;
+
+      const stream = fs.createReadStream(filepath);
 
       const formData = new FormData();
-
       formData.append("reqtype", "fileupload");
-      formData.append("fileToUpload", fileStream);
+      formData.append("fileToUpload", stream);
 
       const response = await fetch("https://catbox.moe/user/api.php", {
         method: "POST",
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
 
       const text = await response.text();
 
-      console.log("CATBOX RESPONSE:", text);
+      console.log("CATBOX:", text);
 
       if (!text.startsWith("http")) {
         return res.status(500).json({ error: text });
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error("SERVER ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 }
