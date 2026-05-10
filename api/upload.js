@@ -1,7 +1,3 @@
-import formidable from "formidable";
-import fs from "fs";
-import FormData from "form-data";
-
 export const config = {
   api: {
     bodyParser: false,
@@ -10,47 +6,51 @@ export const config = {
 
 export default async function handler(req, res) {
   try {
-    const form = formidable({ keepExtensions: true });
+    const chunks = [];
 
-    form.parse(req, async (err, fields, files) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Parse error" });
-      }
+    for await (const chunk of req) {
+      chunks.push(chunk);
+    }
 
-      const file = files.file;
+    const fileBuffer = Buffer.concat(chunks);
 
-      if (!file) {
-        return res.status(400).json({ error: "File tidak ditemukan" });
-      }
+    const boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
 
-      // ⚠️ beda versi formidable, kadang array
-      const filepath = Array.isArray(file)
-        ? file[0].filepath
-        : file.filepath;
+    const body = Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="reqtype"\r\n\r\n` +
+        `fileupload\r\n`
+      ),
 
-      const stream = fs.createReadStream(filepath);
+      Buffer.from(
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="fileToUpload"; filename="file.jpg"\r\n` +
+        `Content-Type: application/octet-stream\r\n\r\n`
+      ),
 
-      const formData = new FormData();
-      formData.append("reqtype", "fileupload");
-      formData.append("fileToUpload", stream);
+      fileBuffer,
 
-      const response = await fetch("https://catbox.moe/user/api.php", {
-        method: "POST",
-        body: formData,
-        headers: formData.getHeaders(),
-      });
+      Buffer.from(`\r\n--${boundary}--`)
+    ]);
 
-      const text = await response.text();
-
-      console.log("CATBOX:", text);
-
-      if (!text.startsWith("http")) {
-        return res.status(500).json({ error: text });
-      }
-
-      res.status(200).json({ url: text });
+    const response = await fetch("https://catbox.moe/user/api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      },
+      body: body,
     });
+
+    const text = await response.text();
+
+    console.log("CATBOX:", text);
+
+    if (!text.startsWith("http")) {
+      return res.status(500).json({ error: text });
+    }
+
+    res.status(200).json({ url: text });
 
   } catch (err) {
     console.error(err);
