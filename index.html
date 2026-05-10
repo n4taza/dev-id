@@ -53,24 +53,25 @@ async function upload() {
   result.innerText = "Uploading...";
 
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("reqtype", "fileupload");
+  formData.append("fileToUpload", file);
 
   try {
-    const res = await fetch("/api/upload", {
+    const res = await fetch("https://catbox.moe/user/api.php", {
       method: "POST",
       body: formData
     });
 
-    const data = await res.json();
+    const text = await res.text();
 
-    if (data.url) {
-      result.innerHTML = `<a href="${data.url}" target="_blank">${data.url}</a>`;
+    if (text.startsWith("http")) {
+      result.innerHTML = `<a href="${text}" target="_blank">${text}</a>`;
     } else {
-      result.innerText = "Error: " + JSON.stringify(data);
+      result.innerText = "Error: " + text;
     }
 
   } catch (err) {
-    result.innerText = "Fetch error: " + err.message;
+    result.innerText = "Upload gagal: " + err.message;
   }
 }
 </script>
